@@ -30,7 +30,7 @@ env:
 jobs:
   linux-s390x-build:
     name: linux-s390x-build-py${{ matrix.python-version }}
-    runs-on: ubuntu-latest
+    runs-on: self-hosted, linux, s390x 
     defaults:
       run:
         shell: bash -elx {0}
@@ -118,7 +118,7 @@ jobs:
   linux-s390x-validate:
     name: validate-py${{ matrix.python-version }}
     needs: linux-s390x-build
-    runs-on: ubuntu-latest
+    runs-on: self-hosted, linux, s390x 
     defaults:
       run:
         shell: bash -elx {0}
@@ -159,7 +159,7 @@ jobs:
   linux-s390x-test:
     name: test-py${{ matrix.python-version }}
     needs: linux-s390x-build
-    runs-on: ubuntu-latest
+    runs-on: self-hosted, linux, s390x 
     defaults:
       run:
         shell: bash -elx {0}
@@ -216,7 +216,7 @@ jobs:
     name: upload-py${{ matrix.python-version }}
     needs: [linux-s390x-test, linux-s390x-validate]
     if: github.event_name == 'workflow_dispatch' && inputs.upload_wheel_to_anaconda
-    runs-on: ubuntu-latest
+    runs-on: self-hosted, linux, s390x 
     defaults:
       run:
         shell: bash -elx {0}
