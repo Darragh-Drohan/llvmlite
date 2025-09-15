@@ -19,7 +19,7 @@ runner_mapping = {
 }
 
 python_versions = ["3.10", "3.11", "3.12", "3.13"]
-platforms = ["linux-64", "linux-aarch64", "linux-s390x" "osx-64", "osx-arm64", "win-64"]
+platforms = ["linux-64", "linux-aarch64", "linux-s390x", "osx-64", "osx-arm64", "win-64"]
 
 default_include = []
 for platform in platforms:
