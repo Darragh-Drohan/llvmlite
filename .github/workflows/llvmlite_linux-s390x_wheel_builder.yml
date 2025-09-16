@@ -81,10 +81,8 @@ jobs:
           LLVMDEV_ARTIFACT_PATH="/root/llvmlite/llvmdev_conda_packages"
 
           # Run the build script in manylinux container using the existing script
-          docker --host unix:///podman/podman.sock run --rm \
-            --privileged \
-            -v "$(pwd):/root/llvmlite" \
-            -v /run/podman/podman.sock:/podman/podman.sock \
+          podman run --rm --userns=keep-id \
+            -v "$(pwd):/root/llvmlite:Z" \
             quay.io/pypa/${{ env.MANYLINUX_IMAGE }} \
             bash -c "git config --global --add safe.directory /root/llvmlite && /root/llvmlite/buildscripts/manylinux/build_llvmlite.sh ${{ env.MINICONDA_FILE }} ${{ env.PYTHON_PATH }} $LLVMDEV_ARTIFACT_PATH"
 
