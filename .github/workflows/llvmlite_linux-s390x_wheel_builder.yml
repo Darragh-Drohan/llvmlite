@@ -81,8 +81,7 @@ jobs:
           LLVMDEV_ARTIFACT_PATH="/root/llvmlite/llvmdev_conda_packages"
 
           # Run the build script in manylinux container using the existing script
-          docker run --rm \
-            --host unix:///podman/podman.sock run \
+          docker --host unix:///podman/podman.sock run --rm \
             --privileged \
             -v "$(pwd):/root/llvmlite" \
             -v /run/podman/podman.sock:/podman/podman.sock \
