@@ -76,6 +76,9 @@ jobs:
           # Define Miniconda installer URL
           echo "MINICONDA_FILE=https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-s390x.sh" >> "$GITHUB_ENV"
 
+      - name: Check Podman Socket Status
+        run: sudo systemctl status podman.socket
+
       - name: Build wheel in manylinux container
         run: |
           LLVMDEV_ARTIFACT_PATH="/root/llvmlite/llvmdev_conda_packages"
