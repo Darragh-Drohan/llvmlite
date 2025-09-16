@@ -86,7 +86,7 @@ jobs:
             -v "$(pwd):/root/llvmlite:Z" \
             -v /run/podman/podman.sock:/podman/podman.sock \
             quay.io/pypa/${{ env.MANYLINUX_IMAGE }} \
-            bash -c 'useradd -m runner && chown -R runner:runner /root/llvmlite && chmod -R ugo+rwx /root/llvmlite/.miniconda/bin && git config --global --add safe.directory /root/llvmlite && su runner -c "/root/llvmlite/buildscripts/manylinux/build_llvmlite.sh ${{ env.MINICONDA_FILE }} ${{ env.PYTHON_PATH }} $LLVMDEV_ARTIFACT_PATH"'
+            bash -c 'useradd -m runner && chown -R runner:runner /root/llvmlite && chmod -R ugo+rwx /root/llvmlite/.miniconda3/bin && git config --global --add safe.directory /root/llvmlite && su runner -c "/root/llvmlite/buildscripts/manylinux/build_llvmlite.sh ${{ env.MINICONDA_FILE }} ${{ env.PYTHON_PATH }} $LLVMDEV_ARTIFACT_PATH"'
 
           # Create wheelhouse directory for artifact upload
           mkdir -p wheelhouse
