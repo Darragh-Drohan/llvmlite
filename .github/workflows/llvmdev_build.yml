@@ -120,10 +120,12 @@ jobs:
 
           echo "Building in manylinux container for ${{ matrix.platform }}"
           mkdir -p docker_output
-          docker run --rm \
-            -v "$(pwd):/root/llvmlite" \
+          sudo podman run --rm \
+            --privileged \
+            -v "$(pwd):/root/llvmlite:Z" \
             "$MANYLINUX_IMAGE" \
             bash -c "git config --global --add safe.directory /root/llvmlite && /root/llvmlite/buildscripts/manylinux/build_llvmdev.sh $MINICONDA_FILE"
+
 
           sudo chown -R "$(id -u):$(id -g)" docker_output
 
