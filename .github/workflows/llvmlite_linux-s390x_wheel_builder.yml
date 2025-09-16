@@ -84,6 +84,7 @@ jobs:
           docker run --rm \
             -v "$(pwd):/root/llvmlite" \
             -v /run/podman/podman.sock:/podman/podman.sock \
+            -e DOCKER_HOST=unix:///podman/podman.sock \
             quay.io/pypa/${{ env.MANYLINUX_IMAGE }} \
             bash -c "git config --global --add safe.directory /root/llvmlite && /root/llvmlite/buildscripts/manylinux/build_llvmlite.sh ${{ env.MINICONDA_FILE }} ${{ env.PYTHON_PATH }} $LLVMDEV_ARTIFACT_PATH"
 
