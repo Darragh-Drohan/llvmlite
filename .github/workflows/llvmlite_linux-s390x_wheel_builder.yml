@@ -81,12 +81,12 @@ jobs:
           LLVMDEV_ARTIFACT_PATH="/root/llvmlite/llvmdev_conda_packages"
 
           # Run the build script in manylinux container using the existing script
-          sudo podman run --rm --userns=keep-id \
+          docker run --rm \
             --privileged \
             -v "$(pwd):/root/llvmlite:Z" \
-            --user runner \
+            -e DOCKER_HOST=unix:///podman/podman.sock \
             quay.io/pypa/${{ env.MANYLINUX_IMAGE }} \
-            bash -c "git config --global --add safe.directory /root/llvmlite && /root/llvmlite/buildscripts/manylinux/build_llvmlite.sh ${{ env.MINICONDA_FILE }} ${{ env.PYTHON_PATH }} $LLVMDEV_ARTIFACT_PATH"
+            bash -c "useradd -m runner && chown -R runner:runner /root/llvmlite && git config --global --add safe.directory /root/llvmlite && /root/llvmlite/buildscripts/manylinux/build_llvmlite.sh ${{ env.MINICONDA_FILE }} ${{ env.PYTHON_PATH }} $LLVMDEV_ARTIFACT_PATH"
 
           # Create wheelhouse directory for artifact upload
           mkdir -p wheelhouse
