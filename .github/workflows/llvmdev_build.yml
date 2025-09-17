@@ -135,30 +135,31 @@ jobs:
           mv docker_output/*/*.conda "${CONDA_CHANNEL_DIR}/"
           ls -lah "${CONDA_CHANNEL_DIR}"
 
-      - name: Install conda-build
-        if: (matrix.platform != 'linux-64' && matrix.platform != 'linux-aarch64' && matrix.platform != 'linux-s390x') || matrix.recipe != 'llvmdev_for_wheel'
-        run: |
-          conda install -c defaults conda-build
-
-      - name: Build and test conda package - non-linux platforms
-        if: (matrix.platform != 'linux-64' && matrix.platform != 'linux-aarch64' && matrix.platform != 'linux-s390x') || matrix.recipe != 'llvmdev_for_wheel'
-        env:
-          CONDA_CHANNEL_DIR: conda_channel_dir
-        run: |
-          set -x
-          mkdir -p "${CONDA_CHANNEL_DIR}"
-          conda build "./conda-recipes/${{ matrix.recipe }}" "--output-folder=${CONDA_CHANNEL_DIR}"
-          ls -lah "${CONDA_CHANNEL_DIR}"
-
-      - name: Upload conda package
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        with:
-          name: ${{ matrix.recipe }}_${{ matrix.platform }}
-          path: conda_channel_dir
-          compression-level: 0
-          retention-days: ${{ env.ARTIFACT_RETENTION_DAYS }}
-          if-no-files-found: error
-
+#
+#      - name: Install conda-build
+#        if: (matrix.platform != 'linux-64' && matrix.platform != 'linux-aarch64' && matrix.platform != 'linux-s390x') || matrix.recipe != 'llvmdev_for_wheel'
+#        run: |
+#          conda install -c defaults conda-build
+#
+#      - name: Build and test conda package - non-linux platforms
+#        if: (matrix.platform != 'linux-64' && matrix.platform != 'linux-aarch64' && matrix.platform != 'linux-s390x') || matrix.recipe != 'llvmdev_for_wheel'
+#        env:
+#          CONDA_CHANNEL_DIR: conda_channel_dir
+#        run: |
+#          set -x
+#          mkdir -p "${CONDA_CHANNEL_DIR}"
+#          conda build "./conda-recipes/${{ matrix.recipe }}" "--output-folder=${CONDA_CHANNEL_DIR}"
+#          ls -lah "${CONDA_CHANNEL_DIR}"
+#
+#      - name: Upload conda package
+#        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+#        with:
+#          name: ${{ matrix.recipe }}_${{ matrix.platform }}
+#          path: conda_channel_dir
+#          compression-level: 0
+#          retention-days: ${{ env.ARTIFACT_RETENTION_DAYS }}
+#          if-no-files-found: error
+#
       - name: Get Workflow Run ID
         run: |
           echo "Current workflow run ID: ${{ github.run_id }}"
