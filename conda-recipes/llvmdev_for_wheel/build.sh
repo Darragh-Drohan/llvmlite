@@ -14,7 +14,7 @@ sed -i.bak "s/NOT APPLE AND NOT ARG_SONAME/NOT ARG_SONAME/g" llvm/cmake/modules/
 mkdir build
 cd build
 
-export CPU_COUNT=4
+export CPU_COUNT=8
 
 CMAKE_ARGS="${CMAKE_ARGS} -DLLVM_ENABLE_PROJECTS=lld;compiler-rt"
 
