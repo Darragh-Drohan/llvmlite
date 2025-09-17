@@ -15,4 +15,4 @@ else
 fi
 conda activate buildenv
 conda list
-conda-build /root/llvmlite/conda-recipes/llvmdev_for_wheel --output-folder=/root/llvmlite/docker_output
+conda-build /root/llvmlite/conda-recipes/llvmdev_for_wheel --output-folder=/root/llvmlite/docker_output -- -- -DCMAKE_SKIP_RPATH=ON
