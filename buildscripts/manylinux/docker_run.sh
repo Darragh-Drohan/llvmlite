@@ -28,7 +28,7 @@ CONTAINER_NAME="llvm20-s390x"
 
 if [ "$RUN_STAGE" == "start" ]; then
     # Start the non-ephemeral container
-    podman create --name llvm20-s390x -v /home/runner/work/llvmlite/llvmlite:/root/llvmlite quay.io/pypa/manylinux2014_s390x:latest /bin/bash -c "sleep infinity"
+    podman create --name llvm20-s390x -v ${GITHUB_WORKSPACE}:/root/llvmlite quay.io/pypa/manylinux2014_s390x:latest /bin/bash -c "sleep infinity"
     podman start llvm20-s390x
 
     # Execute the start script inside the running container
