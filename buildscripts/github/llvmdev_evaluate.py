@@ -1,128 +1,86 @@
-#!/usr/bin/env python
-
+import argparse
 import json
-import os
-from pathlib import Path
+import sys
+
+def evaluate(event_name, platform, recipe, run_stage):
+    """
+    Evaluates the platform and recipe to determine the build matrix.
+    """
+    matrix = {}
+    include_matrix = []
+
+    # Get the runner for the specified platform
+    runner = get_runner(platform)
+
+    # All platforms run all recipes by default
+    if event_name == "workflow_dispatch":
+        # Handle the special "all" option for platform
+        if platform == "all":
+            platforms = ["linux-64", "linux-aarch64", "linux-s390x", "osx-64", "osx-arm64", "win-64"]
+        else:
+            platforms = [platform]
+
+        # Handle the special "all" option for recipe
+        if recipe == "all":
+            recipes = ["llvmdev", "llvmdev_for_wheel"]
+        else:
+            recipes = [recipe]
+
+        for p in platforms:
+            for r in recipes:
+                include_matrix.append({"runner": get_runner(p), "platform": p, "recipe": r})
+    else:
+        # Default behavior for pull requests or other events
+        # You can add logic here to filter based on paths or other conditions
+        platforms = ["linux-64", "linux-aarch64", "linux-s390x", "osx-64", "osx-arm64", "win-64"]
+        recipes = ["llvmdev", "llvmdev_for_wheel"]
+        for p in platforms:
+            for r in recipes:
+                include_matrix.append({"runner": get_runner(p), "platform": p, "recipe": r})
+
+    # Filter out combinations that don't match the run_stage
+    if run_stage != "all":
+        filtered_matrix = []
+        for item in include_matrix:
+            if item["platform"] == "linux-s390x" and item["recipe"] == "llvmdev_for_wheel":
+                # Only include this combination if it's an s390x build
+                filtered_matrix.append(item)
+            # All other builds are single-stage, so they only run with the 'all' stage
+            elif run_stage == "all":
+                filtered_matrix.append(item)
+        include_matrix = filtered_matrix
+
+    matrix["include"] = include_matrix
+    print(json.dumps(matrix))
 
 
-event = os.environ.get("GITHUB_EVENT_NAME")
-label = os.environ.get("GITHUB_LABEL_NAME")
-inputs = os.environ.get("GITHUB_WORKFLOW_INPUT", "{}")
+def get_runner(platform):
+    """
+    Returns the appropriate runner for a given platform.
+    """
+    if platform == "linux-64":
+        return "ubuntu-24.04"
+    elif platform == "linux-aarch64":
+        return "ubuntu-24.04"
+    elif platform == "linux-s390x":
+        return "ubuntu-24.04"
+    elif platform == "osx-64":
+        return "macos-14"
+    elif platform == "osx-arm64":
+        return "macos-14"
+    elif platform == "win-64":
+        return "windows-2022"
+    else:
+        # Default to a safe runner for any unknown platforms
+        return "ubuntu-24.04"
 
-runner_mapping = {
-    "linux-64": "ubuntu-24.04",
-    "linux-aarch64": "ubuntu-24.04-arm",
-    "linux-s390x": "ubuntu-24.04-s390x",
-    "osx-64": "macos-13",
-    "osx-arm64": "macos-14",
-    "win-64": "windows-2025",
-}
 
-default_include = [
-    # linux-64
-    {
-        "runner": runner_mapping["linux-64"],
-        "platform": "linux-64",
-        "recipe": "llvmdev",
-    },
-    {
-        "runner": runner_mapping["linux-64"],
-        "platform": "linux-64",
-        "recipe": "llvmdev_for_wheel",
-    },
-    # linux-aarch64
-    {
-        "runner": runner_mapping["linux-aarch64"],
-        "platform": "linux-aarch64",
-        "recipe": "llvmdev",
-    },
-    {
-        "runner": runner_mapping["linux-aarch64"],
-        "platform": "linux-aarch64",
-        "recipe": "llvmdev_for_wheel",
-    },
-    # linux-s390x
-    {
-        "runner": runner_mapping["linux-s390x"],
-        "platform": "linux-s390x",
-        "recipe": "llvmdev",
-    },
-    {
-        "runner": runner_mapping["linux-s390x"],
-        "platform": "linux-s390x",
-        "recipe": "llvmdev_for_wheel",
-    },
-    # osx-64
-    {
-        "runner": runner_mapping["osx-64"],
-        "platform": "osx-64",
-        "recipe": "llvmdev",
-    },
-    {
-        "runner": runner_mapping["osx-64"],
-        "platform": "osx-64",
-        "recipe": "llvmdev_for_wheel",
-    },
-    # osx-arm64
-    {
-        "runner": runner_mapping["osx-arm64"],
-        "platform": "osx-arm64",
-        "recipe": "llvmdev",
-    },
-    {
-        "runner": runner_mapping["osx-arm64"],
-        "platform": "osx-arm64",
-        "recipe": "llvmdev_for_wheel",
-    },
-    # win-64
-    {
-        "runner": runner_mapping["win-64"],
-        "platform": "win-64",
-        "recipe": "llvmdev",
-    },
-    {
-        "runner": runner_mapping["win-64"],
-        "platform": "win-64",
-        "recipe": "llvmdev_for_wheel",
-    },
-]
-
-print(
-    "Deciding what to do based on event: "
-    f"'{event}', label: '{label}', inputs: '{inputs}'"
-)
-if event == "pull_request":
-    print("pull_request detected")
-    include = default_include
-elif event == "label" and label == "build_on_gha":
-    print("build label detected")
-    include = default_include
-elif event == "workflow_dispatch":
-    print("workflow_dispatch detected")
-    params = json.loads(inputs)
-    platform = params.get("platform", "all")
-    recipe = params.get("recipe", "all")
-
-    # Start with the full matrix
-    filtered_matrix = default_include
-
-    # Filter by platform if a specific one is chosen
-    if platform != "all":
-        filtered_matrix = [
-            item for item in filtered_matrix if item["platform"] == platform
-        ]
-
-    # Filter by recipe if a specific one is chosen
-    if recipe != "all":
-        filtered_matrix = [
-            item for item in filtered_matrix if item["recipe"] == recipe
-        ]
-
-    include = filtered_matrix
-else:
-    include = {}
-
-matrix = {"include": include}
-print(f"Emitting matrix:\n {json.dumps(matrix, indent=4)}")
-
-Path(os.environ["GITHUB_OUTPUT"]).write_text(f"matrix={json.dumps(matrix)}")
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--event-name", required=True)
+    parser.add_argument("--platform", required=True)
+    parser.add_argument("--recipe", required=True)
+    parser.add_argument("--run-stage", required=False, default="all")
+    args = parser.parse_args()
+    
+    evaluate(args.event_name, args.platform, args.recipe, args.run_stage)
