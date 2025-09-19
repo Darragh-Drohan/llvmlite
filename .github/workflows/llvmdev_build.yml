@@ -84,7 +84,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(needs.evaluate.outputs.matrix) }}
-    runs-on: ${{ matrix.runner }}
+    runs-on: ubuntu-24.04-s390x 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4.1.1
