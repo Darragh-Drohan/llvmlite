@@ -82,7 +82,7 @@ jobs:
 
   build:
     needs: evaluate-matrix
-    runs-on: ${{ matrix.runner }}
+    runs-on: ${{ matrix.platform == 'linux-s390x' && 'ubuntu-24.04-s390x' || matrix.runner }}
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(needs.evaluate-matrix.outputs.matrix) }}
@@ -90,6 +90,9 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+      
+      - name: Print Matrix
+        run: echo "Matrix content: ${{ toJson(matrix) }}"
 
       - name: Setup build environment
         run: |
