@@ -83,8 +83,6 @@ jobs:
   build:
     needs: evaluate-matrix
     runs-on: ${{ matrix.runner }}
-    container:
-      image: ${{ matrix.container-image }}
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(needs.evaluate-matrix.outputs.matrix) }}
@@ -102,29 +100,20 @@ jobs:
           echo "MINICONDA_FILE=https://repo.anaconda.com/miniconda/Miniconda3-py311_24.9.2-0-Linux-s390x.sh" >> $GITHUB_ENV
           echo "CONTAINER_NAME=llvm20-s390x" >> $GITHUB_ENV
           
-      - name: Prepare s390x container
-        if: ${{ matrix.platform == 'linux-s390x' }}
-        run: |
-          podman pull quay.io/pypa/manylinux2014_s390x:latest
-          # Create and start the container in a single step using -d
-          podman run -d --name $CONTAINER_NAME -v $SRCDIR:/root/llvmlite quay.io/pypa/manylinux2014_s390x:latest /bin/bash -c "sleep infinity"
-          # Verify the container is running
-          podman ps
-          
       - name: Run build script - s390x start stage
         if: ${{ matrix.platform == 'linux-s390x' && github.event.inputs.run_stage == 'start' }}
         run: |
-          podman exec $CONTAINER_NAME /root/llvmlite/buildscripts/manylinux/build_llvmdev_start.sh $MINICONDA_FILE start
+          podman run --rm -it -v $SRCDIR:/root/llvmlite quay.io/pypa/manylinux2014_s390x:latest /root/llvmlite/buildscripts/manylinux/build_llvmdev_start.sh $MINICONDA_FILE start
 
       - name: Run build script - s390x continue stage
         if: ${{ matrix.platform == 'linux-s390x' && github.event.inputs.run_stage == 'continue' }}
         run: |
-          podman exec $CONTAINER_NAME /root/llvmlite/buildscripts/manylinux/build_llvmdev_continue.sh $MINICONDA_FILE continue
+          podman run --rm -it -v $SRCDIR:/root/llvmlite quay.io/pypa/manylinux2014_s390x:latest /root/llvmlite/buildscripts/manylinux/build_llvmdev_continue.sh $MINICONDA_FILE continue
 
       - name: Run build script - s390x end stage
         if: ${{ matrix.platform == 'linux-s390x' && github.event.inputs.run_stage == 'end' }}
         run: |
-          podman exec $CONTAINER_NAME /root/llvmlite/buildscripts/manylinux/build_llvmdev_end.sh $MINICONDA_FILE end
+          podman run --rm -it -v $SRCDIR:/root/llvmlite quay.io/pypa/manylinux2014_s390x:latest /root/llvmlite/buildscripts/manylinux/build_llvmdev_end.sh $MINICONDA_FILE end
 
       - name: Build and test conda package
         if: ${{ (matrix.platform != 'linux-s390x') }}
