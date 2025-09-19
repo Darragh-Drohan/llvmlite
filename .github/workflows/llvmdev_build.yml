@@ -33,6 +33,14 @@ on:
           - all
           - llvmdev
           - llvmdev_for_wheel
+      run_stage:
+        description: Run stage
+        default: start
+        required: true
+        type: choice
+        options:
+          - start
+          - continue
 
 concurrency:
   # Concurrency group that uses the workflow name and PR number if available
@@ -48,7 +56,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  ARTIFACT_RETENTION_DAYS: 90
+  ARTIFACT_RETENTION_DAYS: 7
 
 jobs:
   build:
@@ -121,3 +129,4 @@ jobs:
           name: ${{ matrix.recipe }}_${{ matrix.platform }}
           path: ./docker_output/*/*.conda
           retention-days: ${{ env.ARTIFACT_RETENTION_DAYS }}
+
