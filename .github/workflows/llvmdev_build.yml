@@ -34,11 +34,12 @@ on:
           - llvmdev
           - llvmdev_for_wheel
       run_stage:
-        description: Run stage
-        default: start
+        description: Multi-stage build control for s390x
+        default: all
         required: true
         type: choice
         options:
+          - all
           - start
           - continue
           - end
@@ -57,17 +58,15 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  ARTIFACT_RETENTION_DAYS: 7
+  ARTIFACT_RETENTION_DAYS: 90
 
 jobs:
-  evaluate-matrix:
-    runs-on: ubuntu-latest
+  evaluate:
+    runs-on: ubuntu-24.04
     outputs:
       matrix: ${{ steps.matrix-eval.outputs.matrix }}
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-
+      - uses: actions/checkout@v4.1.1
       - name: Evaluate matrix
         id: matrix-eval
         run: |
@@ -80,55 +79,67 @@ jobs:
             >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
-  build:
-    needs: evaluate-matrix
-    runs-on: ${{ matrix.platform == 'linux-s390x' && 'ubuntu-24.04-s390x' || matrix.runner }}
+  build-and-test:
+    needs: evaluate
     strategy:
       fail-fast: false
-      matrix: ${{ fromJson(needs.evaluate-matrix.outputs.matrix) }}
-    
+      matrix: ${{ fromJson(needs.evaluate.outputs.matrix) }}
+    runs-on: ${{ matrix.runner }}
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
-      
-      - name: Print Matrix
-        run: echo "Matrix content: ${{ toJson(matrix) }}"
+        uses: actions/checkout@v4.1.1
+        with:
+          lfs: true
 
-      - name: Setup build environment
+      - name: Start s390x build
+        if: (matrix.platform == 'linux-s390x' && matrix.recipe == 'llvmdev_for_wheel' && github.event.inputs.run_stage == 'start')
+        env:
+          CONDA_CHANNEL_DIR: conda_channel_dir
         run: |
-          # Use this to make the llvmdev packages that are manylinux compatible
-          SRCDIR=$( cd "$(dirname $0)/../.." && pwd )
-          echo "SRCDIR=$SRCDIR" >> $GITHUB_ENV
-          
-          echo "MINICONDA_FILE=https://repo.anaconda.com/miniconda/Miniconda3-py311_24.9.2-0-Linux-s390x.sh" >> $GITHUB_ENV
-          echo "CONTAINER_NAME=llvm20-s390x" >> $GITHUB_ENV
-          
-      - name: Run build script - s390x start stage
-        if: ${{ matrix.platform == 'linux-s390x' && github.event.inputs.run_stage == 'start' }}
-        run: |
-          podman run --rm -it -v $SRCDIR:/root/llvmlite quay.io/pypa/manylinux2014_s390x:latest /root/llvmlite/buildscripts/manylinux/build_llvmdev_start.sh $MINICONDA_FILE start
+          set -x
+          # This step will start the podman container and the build.
+          # The build is expected to time out, but the container will remain.
+          ./buildscripts/manylinux/docker_run_s390x.sh build_llvmdev_start.sh start
 
-      - name: Run build script - s390x continue stage
-        if: ${{ matrix.platform == 'linux-s390x' && github.event.inputs.run_stage == 'continue' }}
+      - name: Continue s390x build
+        if: (matrix.platform == 'linux-s390x' && matrix.recipe == 'llvmdev_for_wheel' && github.event.inputs.run_stage == 'continue')
+        env:
+          CONDA_CHANNEL_DIR: conda_channel_dir
         run: |
-          podman run --rm -it -v $SRCDIR:/root/llvmlite quay.io/pypa/manylinux2014_s390x:latest /root/llvmlite/buildscripts/manylinux/build_llvmdev_continue.sh $MINICONDA_FILE continue
+          set -x
+          # This step re-enters the existing container and continues the build.
+          ./buildscripts/manylinux/docker_run_s390x.sh build_llvmdev_continue.sh continue
 
-      - name: Run build script - s390x end stage
-        if: ${{ matrix.platform == 'linux-s390x' && github.event.inputs.run_stage == 'end' }}
+      - name: Finish s390x build and upload
+        if: (matrix.platform == 'linux-s390x' && matrix.recipe == 'llvmdev_for_wheel' && github.event.inputs.run_stage == 'end')
+        env:
+          CONDA_CHANNEL_DIR: conda_channel_dir
         run: |
-          podman run --rm -it -v $SRCDIR:/root/llvmlite quay.io/pypa/manylinux2014_s390x:latest /root/llvmlite/buildscripts/manylinux/build_llvmdev_end.sh $MINICONDA_FILE end
+          set -x
+          # This step runs on the host to copy the artifact out of the container
+          # and then remove the container.
+          mkdir -p "${CONDA_CHANNEL_DIR}"
+          podman cp llvm20-s390x:/root/llvmlite/docker_output/ "${CONDA_CHANNEL_DIR}/"
+          podman stop llvm20-s390x
+          podman rm llvm20-s390x
 
-      - name: Build and test conda package
-        if: ${{ (matrix.platform != 'linux-s390x') }}
-        run: |
-          # This step can be for all other platforms
-          echo "Running build for other platforms"
-          # Your existing build logic here
+      - name: Create run ID artifact
+        if: github.event.inputs.run_stage == 'end' || matrix.platform != 'linux-s390x'
+        run: echo ${{ github.run_id }} > run_id.txt
+
+      - name: Upload run ID artifact
+        if: github.event.inputs.run_stage == 'end' || matrix.platform != 'linux-s390x'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: ${{ matrix.recipe }}_${{ matrix.platform }}_run_id
+          path: run_id.txt
+          retention-days: ${{ env.ARTIFACT_RETENTION_DAYS }}
 
       - name: Upload conda package
+        if: github.event.inputs.run_stage == 'end' || matrix.platform != 'linux-s390x'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: ${{ matrix.recipe }}_${{ matrix.platform }}
-          path: ./docker_output/*/*.conda
+          path: conda_channel_dir/*
           retention-days: ${{ env.ARTIFACT_RETENTION_DAYS }}
-
+          if-no-files-found: error
