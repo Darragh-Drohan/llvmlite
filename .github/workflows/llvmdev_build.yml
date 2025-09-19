@@ -105,11 +105,11 @@ jobs:
       - name: Prepare s390x container
         if: ${{ matrix.platform == 'linux-s390x' }}
         run: |
-          # The container will not remain in a running state if run in one step
-          # with --d and the script exec is done on the next line
           podman pull quay.io/pypa/manylinux2014_s390x:latest
-          podman create --name $CONTAINER_NAME -v $SRCDIR:/root/llvmlite quay.io/pypa/manylinux2014_s390x:latest /bin/bash -c "sleep infinity"
-          podman start $CONTAINER_NAME
+          # Create and start the container in a single step using -d
+          podman run -d --name $CONTAINER_NAME -v $SRCDIR:/root/llvmlite quay.io/pypa/manylinux2014_s390x:latest /bin/bash -c "sleep infinity"
+          # Verify the container is running
+          podman ps
           
       - name: Run build script - s390x start stage
         if: ${{ matrix.platform == 'linux-s390x' && github.event.inputs.run_stage == 'start' }}
