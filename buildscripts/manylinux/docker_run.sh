@@ -28,7 +28,7 @@ CONTAINER_NAME="llvm20-s390x"
 
 if [ "$RUN_STAGE" == "start" ]; then
     # Start the non-ephemeral container
-    podman run --name $CONTAINER_NAME -d -it -v $SRCDIR:/root/llvmlite $IMAGE_URI /bin/bash -c "sleep infinity"
+    podman run --name $CONTAINER_NAME -d -v $SRCDIR:/root/llvmlite $IMAGE_URI /bin/bash -c "sleep infinity"
     # Execute the start script inside the running container
     podman exec -it $CONTAINER_NAME /root/llvmlite/buildscripts/manylinux/$1 ${MINICONDA_FILE} $2
 elif [ "$RUN_STAGE" == "continue" ]; then
