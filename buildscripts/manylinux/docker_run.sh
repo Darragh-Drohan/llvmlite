@@ -30,7 +30,8 @@ if [ "$RUN_STAGE" == "start" ]; then
     # Start the non-ephemeral container
     podman run --name $CONTAINER_NAME -d -v $SRCDIR:/root/llvmlite $IMAGE_URI /bin/bash -c "sleep infinity"
     # Execute the start script inside the running container
-    podman exec -it $CONTAINER_NAME /root/llvmlite/buildscripts/manylinux/$1 ${MINICONDA_FILE} $2
+    podman exec llvm20-s390x /root/llvmlite/buildscripts/manylinux/build_llvmdev_start.sh https://repo.anaconda.com/miniconda/Miniconda3-py311_24.9.2-0-Linux-s390x.sh start
+
 elif [ "$RUN_STAGE" == "continue" ]; then
     # Continue the build inside the existing container
     podman exec -it $CONTAINER_NAME /root/llvmlite/buildscripts/manylinux/$1
