@@ -96,6 +96,13 @@ jobs:
         with:
           lfs: true
 
+      - name: Fix Podman internal state
+        run: |
+          set +e
+          podman system migrate
+          podman system reset
+          set -e
+
       - name: Start s390x build
         if: (matrix.platform == 'linux-s390x' && matrix.recipe == 'llvmdev_for_wheel' && github.event.inputs.run_stage == 'start')
         env:
