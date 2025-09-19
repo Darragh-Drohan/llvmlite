@@ -67,19 +67,18 @@ jobs:
       matrix: ${{ steps.matrix-eval.outputs.matrix }}
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
-      - id: matrix-eval
-        name: Evaluate matrix
+      - name: Evaluate matrix
+        id: matrix-eval
         run: |
-          # Pass the run_stage input to the evaluation script
-          MATRIX_INPUTS=$(echo '${{ toJSON(github.event.inputs) }}' | jq '.run_stage = "${{ github.event.inputs.run_stage }}"')
           echo "matrix<<EOF" >> $GITHUB_OUTPUT
           python ./buildscripts/github/llvmdev_evaluate.py \
-            --event-name ${{ github.event_name }} \
-            --label-name ${{ github.event.label.name }} \
-            --event-inputs "$MATRIX_INPUTS" \
+            --event-name workflow_dispatch \
+            --platform ${{ github.event.inputs.platform }} \
+            --recipe ${{ github.event.inputs.recipe }} \
+            --run-stage ${{ github.event.inputs.run_stage }} \
             >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-  
+          echo "EOF" >> $GITHUB_OUTPUT 
+
   build-and-test:
     needs: evaluate
     strategy:
