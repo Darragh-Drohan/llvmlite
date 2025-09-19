@@ -102,6 +102,7 @@ jobs:
           CONDA_CHANNEL_DIR: conda_channel_dir
         run: |
           set -x
+          chmod +x ./buildscripts/manylinux/build_llvmdev_start.sh
           # This step will start the podman container and the build.
           # The build is expected to time out, but the container will remain.
           ./buildscripts/manylinux/docker_run_s390x.sh build_llvmdev_start.sh start
@@ -112,6 +113,7 @@ jobs:
           CONDA_CHANNEL_DIR: conda_channel_dir
         run: |
           set -x
+          chmod +x ./buildscripts/manylinux/build_llvmdev_continue.sh
           # This step re-enters the existing container and continues the build.
           ./buildscripts/manylinux/docker_run_s390x.sh build_llvmdev_continue.sh continue
 
