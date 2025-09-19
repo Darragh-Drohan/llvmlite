@@ -86,6 +86,11 @@ jobs:
       matrix: ${{ fromJson(needs.evaluate.outputs.matrix) }}
     runs-on: ubuntu-24.04-s390x 
     steps:
+      - name: Set up Podman for rootless mode
+        run: |
+          echo "XDG_RUNTIME_DIR=${HOME}/.local/share/podman" >> $GITHUB_ENV
+          mkdir -p ${HOME}/.local/share/podman
+
       - name: Checkout Repository
         uses: actions/checkout@v4.1.1
         with:
