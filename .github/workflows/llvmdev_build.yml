@@ -60,19 +60,10 @@ env:
   ARTIFACT_RETENTION_DAYS: 7
 
 jobs:
-  build:
-    runs-on: ${{ matrix.runner }}
-    container:
-      image: ${{ matrix.container-image }}
-    strategy:
-      fail-fast: false
-      matrix:
-        # Evaluate the build matrix
-        platform: [ placeholder ]
-        recipe: [ placeholder ]
-        runner: [ placeholder ]
-        container-image: [ placeholder ]
-
+  evaluate-matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.matrix-eval.outputs.matrix }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -88,6 +79,19 @@ jobs:
             --run-stage ${{ github.event.inputs.run_stage }} \
             >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
+
+  build:
+    needs: evaluate-matrix
+    runs-on: ${{ matrix.runner }}
+    container:
+      image: ${{ matrix.container-image }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.evaluate-matrix.outputs.matrix) }}
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
       - name: Setup build environment
         run: |
