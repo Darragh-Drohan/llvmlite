@@ -48,7 +48,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  ARTIFACT_RETENTION_DAYS: 9
+  ARTIFACT_RETENTION_DAYS: 90
 
 jobs:
   build:
@@ -59,10 +59,10 @@ jobs:
       fail-fast: false
       matrix:
         # Evaluate the build matrix
-        platform:
-        recipe:
-        runner:
-        container-image:
+        platform: [ placeholder ]
+        recipe: [ placeholder ]
+        runner: [ placeholder ]
+        container-image: [ placeholder ]
 
     steps:
       - name: Checkout Repository
