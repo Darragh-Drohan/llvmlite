@@ -33,16 +33,6 @@ on:
           - all
           - llvmdev
           - llvmdev_for_wheel
-      run_stage:
-        description: Multi-stage build control for s390x
-        default: all
-        required: true
-        type: choice
-        options:
-          - all
-          - start
-          - continue
-          - end
 
 concurrency:
   # Concurrency group that uses the workflow name and PR number if available
@@ -58,15 +48,26 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  ARTIFACT_RETENTION_DAYS: 90
+  ARTIFACT_RETENTION_DAYS: 9
 
 jobs:
-  evaluate:
-    runs-on: ubuntu-24.04
-    outputs:
-      matrix: ${{ steps.matrix-eval.outputs.matrix }}
+  build:
+    runs-on: ${{ matrix.runner }}
+    container:
+      image: ${{ matrix.container-image }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # Evaluate the build matrix
+        platform:
+        recipe:
+        runner:
+        container-image:
+
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
       - name: Evaluate matrix
         id: matrix-eval
         run: |
@@ -77,69 +78,46 @@ jobs:
             --recipe ${{ github.event.inputs.recipe }} \
             --run-stage ${{ github.event.inputs.run_stage }} \
             >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT 
+          echo "EOF" >> $GITHUB_OUTPUT
 
-  build-and-test:
-    needs: evaluate
-    strategy:
-      fail-fast: false
-      matrix: ${{ fromJson(needs.evaluate.outputs.matrix) }}
-    runs-on: ${{ matrix.runner }}
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
-        with:
-          lfs: true
-
-      - name: Start s390x build
-        if: (matrix.platform == 'linux-s390x' && matrix.recipe == 'llvmdev_for_wheel' && github.event.inputs.run_stage == 'start')
-        env:
-          CONDA_CHANNEL_DIR: conda_channel_dir
+      - name: Setup build environment
         run: |
-          set -x
-          # This step will start the podman container and the build.
-          # The build is expected to time out, but the container will remain.
-          ./buildscripts/manylinux/docker_run_s390x.sh build_llvmdev_start.sh start
-
-      - name: Continue s390x build
-        if: (matrix.platform == 'linux-s390x' && matrix.recipe == 'llvmdev_for_wheel' && github.event.inputs.run_stage == 'continue')
-        env:
-          CONDA_CHANNEL_DIR: conda_channel_dir
+          # Use this to make the llvmdev packages that are manylinux compatible
+          SRCDIR=$( cd "$(dirname $0)/../.." && pwd )
+          echo "SRCDIR=$SRCDIR" >> $GITHUB_ENV
+          
+          echo "MINICONDA_FILE=https://repo.anaconda.com/miniconda/Miniconda3-py311_24.9.2-0-Linux-s390x.sh" >> $GITHUB_ENV
+          echo "CONTAINER_NAME=llvm20-s390x" >> $GITHUB_ENV
+          
+      - name: Prepare s390x container
+        if: ${{ matrix.platform == 'linux-s390x' }}
         run: |
-          set -x
-          # This step re-enters the existing container and continues the build.
-          ./buildscripts/manylinux/docker_run_s390x.sh build_llvmdev_continue.sh continue
-
-      - name: Finish s390x build and upload
-        if: (matrix.platform == 'linux-s390x' && matrix.recipe == 'llvmdev_for_wheel' && github.event.inputs.run_stage == 'end')
-        env:
-          CONDA_CHANNEL_DIR: conda_channel_dir
+          # The container will not remain in a running state if run in one step
+          # with --d and the script exec is done on the next line
+          podman pull quay.io/pypa/manylinux2014_s390x:latest
+          podman create --name $CONTAINER_NAME -v $SRCDIR:/root/llvmlite quay.io/pypa/manylinux2014_s390x:latest /bin/bash -c "sleep infinity"
+          podman start $CONTAINER_NAME
+          
+      - name: Run build script - s390x start stage
+        if: ${{ matrix.platform == 'linux-s390x' && github.event.inputs.run_stage == 'start' }}
         run: |
-          set -x
-          # This step runs on the host to copy the artifact out of the container
-          # and then remove the container.
-          mkdir -p "${CONDA_CHANNEL_DIR}"
-          podman cp llvm20-s390x:/root/llvmlite/docker_output/ "${CONDA_CHANNEL_DIR}/"
-          podman stop llvm20-s390x
-          podman rm llvm20-s390x
-          
-      - name: Create run ID artifact
-        if: github.event.inputs.run_stage == 'end' || matrix.platform != 'linux-s390x'
-        run: echo ${{ github.run_id }} > run_id.txt
-          
-      - name: Upload run ID artifact
-        if: github.event.inputs.run_stage == 'end' || matrix.platform != 'linux-s390x'
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        with:
-          name: ${{ matrix.recipe }}_${{ matrix.platform }}_run_id
-          path: run_id.txt
-          retention-days: ${{ env.ARTIFACT_RETENTION_DAYS }}
-          
+          podman exec $CONTAINER_NAME /root/llvmlite/buildscripts/manylinux/build_llvmdev_start.sh $MINICONDA_FILE start
+
+      - name: Run build script - s390x continue stage
+        if: ${{ matrix.platform == 'linux-s390x' && github.event.inputs.run_stage == 'continue' }}
+        run: |
+          podman exec $CONTAINER_NAME /root/llvmlite/buildscripts/manylinux/build_llvmdev_continue.sh $MINICONDA_FILE continue
+
+      - name: Build and test conda package
+        if: ${{ (matrix.platform != 'linux-s390x') }}
+        run: |
+          # This step can be for all other platforms
+          echo "Running build for other platforms"
+          # Your existing build logic here
+
       - name: Upload conda package
-        if: github.event.inputs.run_stage == 'end' || matrix.platform != 'linux-s390x'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: ${{ matrix.recipe }}_${{ matrix.platform }}
-          path: conda_channel_dir/*
+          path: ./docker_output/*/*.conda
           retention-days: ${{ env.ARTIFACT_RETENTION_DAYS }}
-          if-no-files-found: error
