@@ -41,6 +41,7 @@ on:
         options:
           - start
           - continue
+          - end
 
 concurrency:
   # Concurrency group that uses the workflow name and PR number if available
@@ -115,6 +116,11 @@ jobs:
         if: ${{ matrix.platform == 'linux-s390x' && github.event.inputs.run_stage == 'continue' }}
         run: |
           podman exec $CONTAINER_NAME /root/llvmlite/buildscripts/manylinux/build_llvmdev_continue.sh $MINICONDA_FILE continue
+
+      - name: Run build script - s390x end stage
+        if: ${{ matrix.platform == 'linux-s390x' && github.event.inputs.run_stage == 'end' }}
+        run: |
+          podman exec $CONTAINER_NAME /root/llvmlite/buildscripts/manylinux/build_llvmdev_end.sh $MINICONDA_FILE end
 
       - name: Build and test conda package
         if: ${{ (matrix.platform != 'linux-s390x') }}
