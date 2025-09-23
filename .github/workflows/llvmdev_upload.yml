@@ -1,0 +1,31 @@
+name: llvmdev_upload
+
+on:
+  workflow_dispatch:
+    inputs:
+      manylinux_container_name:
+        description: 'Name of the container with the built package'
+        required: true
+        default: 'manylinux'
+
+jobs:
+  build:
+    name: llvmdev_for_wheel-linux-s390x
+    runs-on: ubuntu-24.04-s390x
+    defaults:
+      run:
+        shell: bash -el {0}
+
+    steps:
+      - name: Copy built package from container
+        run: |
+          sudo podman cp ${{ github.event.inputs.manylinux_container_name }}:/root/llvmlite/docker_output/linux-s390x .
+
+      - name: Upload conda package
+        uses: actions/upload-artifact@v5
+        with:
+          name: llvmdev_for_wheel_linux-s390x
+          path: linux-s390x
+          compression-level: 0
+          retention-days: 90
+          if-no-files-found: error
