@@ -110,8 +110,7 @@ jobs:
             MINICONDA_FILE="https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-aarch64.sh"
           elif [[ "${{ matrix.platform }}" == "linux-s390x" ]]; then
             MANYLINUX_IMAGE="quay.io/pypa/manylinux2014_s390x"
-            MINICONDA_FILE="https://repo.anaconda.com/miniconda/Miniconda3-latest-
-Linux-s390x.sh"
+            MINICONDA_FILE="https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-s390x.sh"
           fi
 
           echo "Building in manylinux container for ${{ matrix.platform }}"
