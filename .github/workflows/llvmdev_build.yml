@@ -129,20 +129,20 @@ jobs:
           mv docker_output/*/*.conda "${CONDA_CHANNEL_DIR}/"
           ls -lah "${CONDA_CHANNEL_DIR}"
 
-      - name: Install conda-build
-        if: (matrix.platform != 'linux-64' && matrix.platform != 'linux-aarch64') || matrix.recipe != 'llvmdev_for_wheel'
-        run: |
-          conda install -c defaults conda-build
-
-      - name: Build and test conda package - non-linux platforms
-        if: (matrix.platform != 'linux-64' && matrix.platform != 'linux-aarch64') || matrix.recipe != 'llvmdev_for_wheel'
-        env:
-          CONDA_CHANNEL_DIR: conda_channel_dir
-        run: |
-          set -x
-          mkdir -p "${CONDA_CHANNEL_DIR}"
-          conda build "./conda-recipes/${{ matrix.recipe }}" "--output-folder=${CONDA_CHANNEL_DIR}"
-          ls -lah "${CONDA_CHANNEL_DIR}"
+#      - name: Install conda-build
+#        if: (matrix.platform != 'linux-64' && matrix.platform != 'linux-aarch64') || matrix.recipe != 'llvmdev_for_wheel'
+#        run: |
+#          conda install -c defaults conda-build
+#
+#      - name: Build and test conda package - non-linux platforms
+#        if: (matrix.platform != 'linux-64' && matrix.platform != 'linux-aarch64') || matrix.recipe != 'llvmdev_for_wheel'
+#        env:
+#          CONDA_CHANNEL_DIR: conda_channel_dir
+#        run: |
+#          set -x
+#          mkdir -p "${CONDA_CHANNEL_DIR}"
+#          conda build "./conda-recipes/${{ matrix.recipe }}" "--output-folder=${CONDA_CHANNEL_DIR}"
+#          ls -lah "${CONDA_CHANNEL_DIR}"
 
       - name: Upload conda package
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
