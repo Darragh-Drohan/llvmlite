@@ -39,6 +39,10 @@ if [[ $target_platform == osx-arm64 ]]; then
   CMAKE_ARGS="${CMAKE_ARGS} -DCMAKE_ENABLE_WERROR=FALSE"
 fi
 
+if [[ $target_platform == linux-s390x ]]; then
+  CMAKE_ARGS="${CMAKE_ARGS} -DCMAKE_SKIP_RPATH=TRUE"
+fi
+
 cmake -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
       -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_LIBRARY_PATH="${PREFIX}" \
